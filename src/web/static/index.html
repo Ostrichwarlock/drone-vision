@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f5f8">
+  <title>Video test console · Drone Vision</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="page-width header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true"><i></i></span>
+        <span>Drone<span class="brand-accent">Vision</span></span>
+      </a>
+      <span class="header-mode"><span aria-hidden="true"></span>Local test console</span>
+    </div>
+  </header>
+
+  <main class="page-width">
+    <div class="page-intro">
+      <div>
+        <h1>Video test console</h1>
+        <p>Run drone detection and tracking on a video, then review its results.</p>
+      </div>
+      <button id="demo-button" type="button" class="button button-secondary" disabled>
+        <span class="play-icon" aria-hidden="true"></span> Run synthetic demo
+      </button>
+    </div>
+
+    <p id="startup-error" class="notice notice-error" role="alert" hidden></p>
+
+    <div class="workspace">
+      <aside class="controls" aria-label="Test controls">
+        <section class="card card-padded" aria-labelledby="new-test-title">
+          <h2 id="new-test-title">New test</h2>
+          <form id="run-form">
+            <div class="field">
+              <label for="video-input" class="field-label">Video</label>
+              <label for="video-input" id="video-drop" class="dropzone">
+                <span class="upload-symbol" aria-hidden="true">↑</span>
+                <span id="video-name" class="dropzone-title">Choose a video</span>
+                <span id="video-help" class="field-hint">or drag it here · MP4, MOV, AVI, WebM</span>
+              </label>
+              <input class="file-input" type="file" id="video-input" accept=".mp4,.mov,.avi,.mkv,.webm,.m4v,video/*" aria-describedby="video-help">
+            </div>
+
+            <div class="field">
+              <label for="model-select" class="field-label">Detector</label>
+              <select id="model-select" aria-describedby="model-hint" disabled>
+                <option value="">Loading detectors…</option>
+              </select>
+              <p id="model-hint" class="field-hint"></p>
+            </div>
+
+            <div class="field">
+              <label for="profile-select" class="field-label">Recognition sensitivity</label>
+              <select id="profile-select" aria-describedby="profile-hint" disabled>
+                <option value="balanced" selected>Balanced</option>
+                <option value="recall">Higher recall</option>
+              </select>
+              <p id="profile-hint" class="field-hint">Runs the detector on each full frame.</p>
+            </div>
+
+            <div class="field">
+              <label for="truth-input" class="field-label">Ground truth <span class="optional">Optional</span></label>
+              <div class="file-choice-row">
+                <label class="file-choice" for="truth-input">
+                  <span id="truth-name">Choose a MOT text file</span>
+                  <span class="browse-label">Browse</span>
+                </label>
+                <button id="truth-remove" class="button button-secondary button-small" type="button" hidden>Remove</button>
+              </div>
+              <input class="file-input" type="file" id="truth-input" accept=".txt,.csv,text/plain,text/csv" aria-describedby="truth-help">
+              <p id="truth-help" class="field-hint">MOT TXT or CSV for detection, tracking, and ID recovery scores.</p>
+            </div>
+
+            <button id="run-button" class="button button-primary" type="submit" disabled>Run video test</button>
+            <p id="upload-status" class="form-status" role="status" hidden></p>
+            <p id="upload-error" class="notice notice-error" role="alert" hidden></p>
+          </form>
+        </section>
+
+        <section class="card history-card" aria-labelledby="history-title">
+          <div class="history-heading"><h2 id="history-title">Recent runs</h2></div>
+          <p id="history-message" class="history-message">Loading runs…</p>
+          <ul id="run-list" class="run-list" aria-label="Recent video tests"></ul>
+        </section>
+      </aside>
+
+      <div class="results">
+        <section class="card result-card" aria-labelledby="result-title">
+          <div class="result-heading">
+            <div>
+              <h2 id="result-title">Annotated video</h2>
+              <p id="run-meta" class="field-hint" hidden></p>
+            </div>
+            <span id="run-status" class="status status-idle" role="status"><i aria-hidden="true"></i><span>No run selected</span></span>
+          </div>
+
+          <div class="player">
+            <div id="player-empty" class="player-empty">
+              <div class="player-frame" aria-hidden="true"><span class="play-icon"></span></div>
+              <p id="player-title">No video processed</p>
+              <span id="player-message">Upload a video or run the synthetic demo.</span>
+            </div>
+            <video id="result-video" aria-label="Annotated tracking video" controls playsinline preload="metadata" hidden></video>
+          </div>
+          <p id="video-error" class="notice notice-error playback-notice" role="alert" hidden></p>
+
+          <dl class="metrics" aria-label="Run summary">
+            <div><dt>Frames</dt><dd id="stat-frames">—</dd></div>
+            <div><dt>Processing FPS</dt><dd id="stat-fps">—</dd></div>
+            <div><dt>Track observations</dt><dd id="stat-tracks">—</dd></div>
+            <div><dt>Recovered IDs</dt><dd id="stat-recovered">—</dd></div>
+          </dl>
+          <div id="run-files" class="downloads" aria-label="Result files" hidden></div>
+        </section>
+
+        <section class="card card-padded statistics-card" aria-labelledby="run-statistics-title">
+          <div class="statistics-heading">
+            <div>
+              <h2 id="run-statistics-title">Run statistics</h2>
+              <p id="statistics-intro" class="field-hint">Run a test to see throughput, resource use, and stage timings.</p>
+            </div>
+            <a id="statistics-download" class="button button-secondary button-small" aria-label="Download run statistics JSON" download hidden>Download JSON</a>
+          </div>
+          <div id="statistics-content" hidden>
+            <dl id="statistics-metrics" class="score-grid" aria-label="Detailed run statistics"></dl>
+            <details id="timing-details" hidden>
+              <summary>Stage timings (ms)</summary>
+              <p class="field-hint timing-hint">Some stages overlap. Detector time includes inference, and tracking time can include re-identification. Sample counts vary by stage.</p>
+              <div class="table-scroll" tabindex="0" role="region" aria-label="Stage timing breakdown in milliseconds">
+                <table class="timing-table">
+                  <thead><tr><th scope="col">Stage</th><th scope="col">Samples</th><th scope="col">Mean</th><th scope="col">P50</th><th scope="col">P95</th><th scope="col">P99</th></tr></thead>
+                  <tbody id="timing-rows"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="card card-padded evaluation-card" aria-labelledby="evaluation-title">
+          <div class="evaluation-heading">
+            <div>
+              <h2 id="evaluation-title">Evaluation</h2>
+              <p id="evaluation-intro" class="field-hint">Compare the run with a matching MOT annotation file.</p>
+            </div>
+            <a id="evaluation-download" class="button button-secondary button-small" download hidden>Download JSON</a>
+          </div>
+          <div id="evaluation-results" hidden>
+            <div class="score-section">
+              <h3 id="submission-scores-title">Submission scores</h3>
+              <dl id="tracking-metrics" class="score-grid"></dl>
+            </div>
+            <div class="score-section" id="detection-results" hidden>
+              <h3>Raw detector scores</h3>
+              <dl id="detection-metrics" class="score-grid"></dl>
+            </div>
+            <details id="recovery-details" hidden>
+              <summary>Identity recovery details</summary>
+              <div class="table-scroll" tabindex="0" role="region" aria-label="Identity recovery events">
+                <table>
+                  <thead><tr><th scope="col">Object</th><th scope="col">Return frame</th><th scope="col">Gap</th><th scope="col">Outcome</th></tr></thead>
+                  <tbody id="recovery-rows"></tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+          <form id="evaluation-form" class="evaluation-form" hidden>
+            <label for="evaluation-input" class="field-label">Ground truth for this run</label>
+            <div class="evaluation-form-row">
+              <label class="file-choice" for="evaluation-input">
+                <span id="evaluation-name">Choose a MOT text file</span><span class="browse-label">Browse</span>
+              </label>
+              <input class="file-input" type="file" id="evaluation-input" accept=".txt,.csv,text/plain,text/csv">
+              <button id="evaluation-button" type="submit" class="button button-secondary button-small" disabled>Evaluate</button>
+            </div>
+          </form>
+          <p id="evaluation-error" class="notice notice-error" role="alert" hidden></p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

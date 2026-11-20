@@ -1,0 +1,28 @@
+[project]
+name = "drone-vision"
+version = "0.1.0"
+description = "Causal drone detection and persistent identity tracking for Raspberry Pi"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "numpy>=2.2,<2.3",
+    "opencv-python-headless==4.12.0.88",
+    "pyyaml>=6.0.2,<7",
+    "scipy>=1.14.1,<1.17",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10"]
+ui = [
+    "fastapi>=0.116,<1",
+    "imageio-ffmpeg>=0.6,<1",
+    "python-multipart>=0.0.20,<1",
+    "uvicorn>=0.35,<1",
+]
+
+[tool.uv]
+package = false
+required-environments = ["sys_platform == 'linux' and platform_machine == 'aarch64'"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

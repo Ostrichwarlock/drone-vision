@@ -1,0 +1,10 @@
+.DS_Store
+.venv/
+.venv-train/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+/datasets/
+/data/
+/models/
+/outputs/

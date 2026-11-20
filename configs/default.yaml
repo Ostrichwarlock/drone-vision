@@ -1,0 +1,12 @@
+detector:
+  backend: onnx
+  input_size: 640
+  confidence: 0.10
+tracker:
+  high_confidence: 0.45
+  low_confidence: 0.10
+  max_lost_seconds: 0.5
+  reid_max_seconds: 30
+pipeline:
+  detector_interval: 1
+  tiles: 1
